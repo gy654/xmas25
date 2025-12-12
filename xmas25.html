@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025 Xmas - Interactive 3D Tree</title>
+    <!-- Artistic Font Import -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Load OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Load Phosphor Icons (for the UI) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* Custom CSS to ensure the canvas fills the viewport */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Inter', sans-serif;
+            cursor: grab;
+        }
+        #scene-container {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+        .ui-overlay {
+            z-index: 20;
+            position: absolute;
+        }
+        /* Style for the artistic title */
+        .artistic-title {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+        }
+        /* Custom styling for the range slider */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffcc00; /* Champagne Gold */
+            cursor: pointer;
+            box-shadow: 0 0 5px #ffcc00;
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffcc00;
+            cursor: pointer;
+            box-shadow: 0 0 5px #ffcc00;
+        }
+        /* --- General UI Styles (Mac Aesthetic) --- */
+        
+        /* Icon Buttons */
+        .icon-button {
+            transition: transform 0.1s, background-color 0.1s;
+            background-color: transparent; /* No default button background */
+            border-radius: 4px; /* Slight rounding inside container */
+            padding: 0.5rem 0.75rem; /* wider buttons */
+        }
+        .icon-button:hover {
+            transform: scale(1.05);
+            /* Soft, cool highlight */
+            background-color: rgba(0, 255, 255, 0.1); 
+            box-shadow: none;
+        }
+        .icon-button.active {
+             /* Active state: subtle glow and slightly darker background */
+             background-color: rgba(0, 255, 255, 0.15); 
+             box-shadow: 0 0 8px rgba(0, 255, 255, 0.5); /* subtle cyan glow */
+        }
+        
+        /* Icon Bar Container (Floating/Holographic) */
+        #icon-bar-container {
+             /* Subtle background */
+             background-color: rgba(255, 255, 255, 0.05); 
+             backdrop-filter: blur(8px); /* Frosted glass effect */
+             border: 1px solid rgba(255, 255, 255, 0.1); 
+             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); 
+             border-radius: 8px; /* Mac standard rounding */
+             padding: 0.5rem; /* Increased container padding */
+        }
+        
+        /* Message Window Container (Mac Window Style) */
+        .message-window {
+            background-color: rgba(31, 41, 55, 0.8); /* Dark background with transparency */
+            backdrop-filter: blur(5px);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Message Window Header (Traffic Lights) */
+        .window-header {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.05); /* Light top bar */
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+        
+        /* Traffic Light Icons */
+        .traffic-lights {
+            display: flex;
+            gap: 6px;
+        }
+        .traffic-light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            transition: background-color 0.1s;
+        }
+        .traffic-light-red { background-color: #ff605c; }
+        .traffic-light-yellow { background-color: #ffbd44; }
+        .traffic-light-green { background-color: #00ca4e; }
+        .traffic-light-text {
+             flex-grow: 1;
+             text-align: center;
+             font-size: 0.85rem;
+             color: rgba(255, 255, 255, 0.6);
+        }
+    </style>
+</head>
+<body class="bg-black text-white">
+
+    <!-- UI Overlay for Title, Icons, and Slider -->
+    <div id="ui-container" class="ui-overlay w-full h-full flex flex-col justify-between items-center p-6 pointer-events-none">
+        
+        <!-- Top Section: Title, Icons, and Code Snippet -->
+        <div class="w-full flex flex-col items-start px-4 pointer-events-auto">
+            
+            <!-- Title and Subtitle Container -->
+            <div class="mb-4">
+                <!-- Title (Left) -->
+                <h1 class="artistic-title text-5xl font-extrabold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-green-400 shadow-xl" style="text-shadow: 0 0 10px #00ffff, 0 0 20px #00ff00;">
+                    2025 Xmas
+                </h1>
+                <!-- Subtitle (GY) -->
+                <p class="artistic-title text-xl tracking-wider text-cyan-300/80 mt-1" style="text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);">
+                    GY
+                </p>
+            </div>
+
+
+            <!-- Icons/Shape Selectors (Moved to Top Right) -->
+            <div class="absolute top-6 right-4">
+                <div id="icon-bar-container" class="flex space-x-2">
+                    
+                    <button id="btn-tree" class="icon-button text-cyan-400 active" title="Christmas Tree">
+                        <i class="ph-fill ph-tree text-2xl"></i>
+                    </button>
+
+                    <button id="btn-wreath" class="icon-button text-green-400" title="Wreath">
+                        <i class="ph-fill ph-circle-wavy-check text-2xl"></i>
+                    </button>
+
+                    <button id="btn-gingerbread" class="icon-button text-yellow-400" title="Gingerbread Man">
+                        <i class="ph-fill ph-cookie text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW: Floating Code Snippet (Left Center) - Mac Window Style -->
+        <!-- Reduced width to w-64 -->
+        <div class="absolute top-1/2 left-0 transform -translate-y-1/2 ml-4 p-4 pointer-events-auto w-64">
+            <div class="message-window">
+                <!-- Window Header (Traffic Lights) -->
+                <div class="window-header">
+                    <div class="traffic-lights">
+                        <div class="traffic-light traffic-light-red"></div>
+                        <div class="traffic-light traffic-light-yellow"></div>
+                        <div class="traffic-light traffic-light-green"></div>
+                    </div>
+                    <span class="traffic-light-text">Message.py</span>
+                </div>
+                <!-- Code Content -->
+                <!-- Reduced padding to p-2 -->
+                <div class="p-2">
+                    <pre class="text-xs text-yellow-300 font-mono overflow-auto whitespace-pre-wrap">
+<code class="text-yellow-400"># Christmas Logic
+
+def deliver_joy():
+    spark = True
+    if spark:
+        print("Merry Christmas!")
+    return 2025
+                    </code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Section: Zoom Slider (Center) -->
+        <div class="mb-10 w-full max-w-xs pointer-events-auto">
+            <label for="zoom-slider" class="block text-sm font-medium mb-2 text-cyan-300 text-center">Zoom Level</label>
+            <input type="range" id="zoom-slider" min="10" max="60" value="30" step="1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+        </div>
+    </div>
+
+    <!-- 3D Scene Container -->
+    <div id="scene-container"></div>
+
+    <script type="module">
+        // --- MANDATORY FIREBASE/AUTH SETUP (For Canvas Environment) ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Canvas variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth;
+        let userId = null;
+
+        if (firebaseConfig) {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            setLogLevel('silent');
+            
+            // Auth logic
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    try {
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Firebase Auth Error:", error);
+                    }
+                }
+                userId = auth.currentUser?.uid || crypto.randomUUID();
+                // We don't need to do anything with userId for this app, but the logic is required.
+            });
+        }
+        // --- END FIREBASE/AUTH SETUP ---
+
+
+        // --- THREE.JS APPLICATION CODE ---
+
+        let scene, camera, renderer, controls;
+        let particleGeometry, particleMaterial, particleSystem;
+        let backgroundParticles; 
+        let starParticleIndices = []; // Array to store indices of the top 50 star particles
+
+        const numParticles = 30000;
+        const numBackgroundParticles = 2000; 
+
+        let positions = new Float32Array(numParticles * 3);
+        let targetPositions = new Float32Array(numParticles * 3);
+        let currentPositions = new Float32Array(numParticles * 3);
+        let colorAttributes = new Float32Array(numParticles * 3);
+
+        // Core Palette
+        const neonCyan = new THREE.Color(0x00ffff);
+        const neonGreen = new THREE.Color(0x99ff99); 
+        const champagneGold = new THREE.Color(0xffddaa); 
+        const baseStarColor = new THREE.Color(0xffffff).lerp(champagneGold, 0.8);
+
+        // Background Palette (Snow focused)
+        const snowColor = new THREE.Color(0xeeeeff); // Pale, cool white for snow
+        const bgRange = 120; // Range for background particles
+
+        const lerpSpeed = 0.05; 
+        let initialBlurFactor = 20.0; 
+
+        const shapes = {};
+        let currentShape = 'tree'; 
+        let time = 0; // Time variable for twinkling effect
+
+        function init() {
+            const container = document.getElementById('scene-container');
+
+            // 1. Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050505); // Matte black
+
+            // 2. Camera
+            camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.z = 30;
+
+            // 3. Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // 4. Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; 
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 15;
+            controls.maxDistance = 60;
+            controls.rotateSpeed = 0.5;
+
+            // 5. Lights (Dynamic Lighting)
+            const light1 = new THREE.PointLight(neonCyan, 1, 100, 2);
+            light1.position.set(20, 10, 20);
+            scene.add(light1);
+
+            const light2 = new THREE.PointLight(neonGreen, 1, 100, 2);
+            light2.position.set(-20, -10, -20);
+            scene.add(light2);
+
+            const light3 = new THREE.AmbientLight(0x222222);
+            scene.add(light3);
+
+            // 6. Generate Shapes Data
+            generateShapesData();
+
+            // 7. Setup Main Particles
+            setupParticles();
+            
+            // 8. Setup Ethereal Background Particles (Snow)
+            setupBackgroundParticles();
+            
+            // 9. Initial setup and event listeners
+            setupEventListeners();
+            
+            // Start the animation loop
+            animate();
+        }
+
+        // --- SHAPE GENERATION FUNCTIONS ---
+
+        function generateTreePoints() {
+            const points = [];
+            const height = 18;
+            const baseRadius = 6;
+            const halfHeight = height / 2;
+            
+            for (let i = 0; i < numParticles; i++) {
+                // 1. Random height (Y axis, centered around 0, ranges from -9 to 9)
+                const y = (Math.random() * height) - halfHeight;
+
+                // 2. Calculate the maximum radius at this height (r should be 6 at y=-9, 0 at y=9)
+                const radiusFactor = (halfHeight - y) / height;
+                const maxR = baseRadius * radiusFactor;
+                
+                // 3. Generate random radius within the maxR
+                const r = Math.random() * maxR;
+
+                // 4. Random angle for XZ position
+                const theta = Math.random() * Math.PI * 2; 
+
+                const x = r * Math.cos(theta);
+                const z = r * Math.sin(theta);
+
+                points.push(x, y, z);
+            }
+            return points;
+        }
+
+        function generateWreathPoints() {
+            const points = [];
+            const radius = 7; 
+            const tubeRadius = 2; 
+            const roughness = 1.5; // Richer texture multiplier
+            
+            // Generate all particles for the base, rough, textured torus
+            for (let i = 0; i < numParticles; i++) {
+                const u = Math.random() * Math.PI * 2; 
+                const v = Math.random() * Math.PI * 2; 
+
+                // Base Torus coordinates (Vertical hanging orientation, in X-Z plane)
+                const baseR = radius + tubeRadius * Math.cos(v);
+                const baseX = baseR * Math.cos(u);
+                const baseY = tubeRadius * Math.sin(v); 
+                const baseZ = baseR * Math.sin(u);
+                
+                // Introduce random displacement (rich texture, but no decor clusters)
+                const offsetX = (Math.random() - 0.5) * roughness;
+                const offsetY = (Math.random() - 0.5) * roughness;
+                const offsetZ = (Math.random() - 0.5) * roughness;
+
+                points.push(baseX + offsetX, baseY + offsetY, baseZ + offsetZ); 
+            }
+            
+            return points;
+        }
+
+        function generateGingerbreadPoints() {
+            const points = [];
+            
+            // Parameters for smooth, cute gingerbread shape
+            const HEAD_RADIUS = 3.0; 
+            const TORSO_WIDTH = 4.0; 
+            const LIMB_WIDTH = 2.5; 
+            const THICKNESS = 1.5; 
+
+            const HEAD_Y_CENTER = 7.0; 
+            const ARM_Y_CENTER = 3.0;
+            const LEG_Y_CENTER = -6.0;
+            const NECK_Y = 4.5;
+            const GLOBAL_SCALE = 0.8; 
+            
+            const ARM_LENGTH_MULTIPLIER = 2.5; 
+            
+            // Gestural Offsets (Liveliness)
+            const ARM_SWING_Y_OFFSET = -0.5; 
+            const ARM_SWING_X_OFFSET = 0.5; 
+            const LEG_SWING_Y_OFFSET = 0.5; 
+            const LEG_SWING_X_OFFSET = 0.3; 
+
+            for (let i = 0; i < numParticles; i++) {
+                let x, y, z;
+                
+                y = (Math.random() * 18.0) - 9.0; 
+                
+                let maxR_Head = 0;
+                let maxR_Body = 0;
+                let isLegRegion = false;
+                let legSeparationX = 0;
+                
+                // Declared within the loop scope (safe from ReferenceError)
+                let armHorizontalR = 0;
+                let legHorizontalR = 0;
+
+
+                // --- 1. Calculate Head Influence (Perfect Sphere) ---
+                const relativeY_Head = y - HEAD_Y_CENTER;
+                if (Math.abs(relativeY_Head) < HEAD_RADIUS) { 
+                    maxR_Head = HEAD_RADIUS * Math.sqrt(1 - (relativeY_Head * relativeY_Head) / (HEAD_RADIUS * HEAD_RADIUS));
+                }
+
+                // --- 2. Calculate Body/Limb Influence ---
+                {
+                    let torsoMaxR = TORSO_WIDTH / 2;
+                    
+                    // Arm influence: smoother transition using cos wave centered at ARM_Y_CENTER
+                    const armVerticalDist = Math.abs(y - ARM_Y_CENTER);
+                    if (armVerticalDist < 3.0) {
+                        armHorizontalR = LIMB_WIDTH * ARM_LENGTH_MULTIPLIER * (0.5 * Math.cos(armVerticalDist / 3.0 * Math.PI) + 0.5); 
+                    }
+                    
+                    // Leg influence: smoother transition using cos wave centered at LEG_Y_CENTER
+                    const legVerticalDist = Math.abs(y - LEG_Y_CENTER);
+                    if (legVerticalDist < 2.0) {
+                        legHorizontalR = LIMB_WIDTH * (0.5 * Math.cos(legVerticalDist / 2.0 * Math.PI) + 0.5); 
+                        isLegRegion = true;
+                    }
+                    
+                    maxR_Body = Math.max(torsoMaxR, armHorizontalR, legHorizontalR);
+                    
+                    // Waist taper (gentle narrowing)
+                    if (y < 1.0 && y > -4.0) {
+                        const taperFactor = 1.0 - (1.0 - y) / 5.0 * 0.3; 
+                        maxR_Body *= taperFactor;
+                    }
+                }
+                
+                // --- 3. Determine Final Max Radius (Contiguous Profile) ---
+                
+                // Smooth transition at the neck
+                let maxR_Final;
+                if (y > NECK_Y) {
+                    maxR_Final = maxR_Head;
+                } else if (y >= NECK_Y - 1.0) {
+                     // Blend Head and Body influence around the neck area (Y=4.5)
+                     const blendFactor = (NECK_Y - y);
+                     maxR_Final = maxR_Head * blendFactor + maxR_Body * (1.0 - blendFactor);
+                     maxR_Final = Math.max(maxR_Final, Math.min(HEAD_RADIUS, TORSO_WIDTH / 2)); // Ensure it's not too thin
+                } else {
+                    maxR_Final = maxR_Body;
+                }
+
+
+                // --- 4. Set Base X Position ---
+                if (isLegRegion) {
+                    // Leg separation logic remains for the lower profile
+                    legSeparationX = 1.5;
+                    const side = Math.random() > 0.5 ? 1 : -1;
+                    x = side * legSeparationX + (Math.random() - 0.5) * legHorizontalR * 0.8;
+                }
+                
+                if (typeof x === 'undefined' || !isLegRegion) {
+                    // Standard generation based on the final contour
+                    x = (Math.random() - 0.5) * maxR_Final * 2;
+                } else if (isLegRegion && Math.abs(x) > maxR_Final) {
+                    // Clip X position to the final max radius contour
+                    x = Math.sign(x) * maxR_Final * 0.9;
+                }
+                
+                // --- 5. Apply Gestural Offsets ---
+                
+                // Arms region (Y between approx 1.0 and 5.0)
+                if (y > 1.0 && y < 5.0) {
+                    const side = x > 0 ? 1 : -1;
+                    if (side > 0) {
+                         y += ARM_SWING_Y_OFFSET;
+                    }
+                    if (side < 0) {
+                         x += ARM_SWING_X_OFFSET * side; 
+                    }
+                }
+
+                // Legs region (Y below approx -4.0)
+                if (y < -4.0) {
+                    const side = x > 0 ? 1 : -1;
+                    if (side > 0) {
+                        y += LEG_SWING_Y_OFFSET;
+                    }
+                    if (side < 0) {
+                        x += LEG_SWING_X_OFFSET * side;
+                    }
+                }
+
+                z = (Math.random() - 0.5) * THICKNESS;
+
+                // Apply global scaling
+                points.push(x * GLOBAL_SCALE, y * GLOBAL_SCALE, z * GLOBAL_SCALE); 
+            }
+            return points;
+        }
+
+        function generateShapesData() {
+            shapes.tree = generateTreePoints();
+            shapes.wreath = generateWreathPoints();
+            shapes.gingerbread = generateGingerbreadPoints();
+            shapes.random = Array.from({ length: numParticles * 3 }, () => (Math.random() - 0.5) * 60);
+
+            for (let i = 0; i < numParticles * 3; i++) {
+                currentPositions[i] = shapes.tree[i];
+                targetPositions[i] = shapes.tree[i];
+            }
+        }
+        
+        function updateParticleColors(shapeKey) {
+            // Apply a consistent coloring ratio across all shapes
+            const goldRatio = 0.25;
+            const cyanRatio = 0.25;
+            
+            // Base Color Assignment
+            for (let i = 0; i < numParticles * 3; i += 3) {
+                const particleIndex = i / 3;
+                const rand = Math.random();
+                
+                if (rand < goldRatio) {
+                    // Gold (Accents)
+                    colorAttributes[i] = champagneGold.r;
+                    colorAttributes[i + 1] = champagneGold.g;
+                    colorAttributes[i + 2] = champagneGold.b;
+                } else if (rand < goldRatio + cyanRatio) {
+                    // Cyan (Accents)
+                    colorAttributes[i] = neonCyan.r;
+                    colorAttributes[i + 1] = neonCyan.g;
+                    colorAttributes[i + 2] = neonCyan.b;
+                } else {
+                    // Green (Base structure)
+                    colorAttributes[i] = neonGreen.r;
+                    colorAttributes[i + 1] = neonGreen.g;
+                    colorAttributes[i + 2] = neonGreen.b;
+                }
+            }
+
+            // --- STAR PARTICLE INDEX TRACKING ---
+            // Find and store indices of star particles, which will be needed for animation
+            starParticleIndices = [];
+            if (shapeKey === 'tree') {
+                const yPositions = [];
+                for (let i = 0; i < numParticles * 3; i += 3) {
+                    yPositions.push({ index: i, y: targetPositions[i + 1] }); 
+                }
+                yPositions.sort((a, b) => b.y - a.y);
+
+                for (let i = 0; i < 50 && i < yPositions.length; i++) {
+                    const index = yPositions[i].index;
+                    starParticleIndices.push(index); // Store the start index of the particle (X coordinate)
+                    
+                    // Set initial star color (Brighter gold)
+                    const starColor = baseStarColor; 
+                    colorAttributes[index] = starColor.r;
+                    colorAttributes[index + 1] = starColor.g;
+                    colorAttributes[index + 2] = starColor.b;
+                }
+            }
+            
+            particleSystem.geometry.getAttribute('color').needsUpdate = true;
+        }
+
+        function setupParticles() {
+            particleGeometry = new THREE.BufferGeometry();
+            
+            // Initialize positions with initial blur, colors will be set later by updateParticleColors
+            for (let i = 0; i < numParticles * 3; i++) {
+                positions[i] = currentPositions[i] + (Math.random() - 0.5) * initialBlurFactor;
+            }
+
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particleGeometry.setAttribute('color', new THREE.BufferAttribute(colorAttributes, 3));
+
+            particleMaterial = new THREE.PointsMaterial({
+                size: 0.15,
+                vertexColors: true,
+                blending: THREE.AdditiveBlending, // Neon glow effect
+                transparent: true,
+                opacity: 0.9,
+            });
+
+            particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particleSystem);
+            
+            // Set initial colors
+            updateParticleColors(currentShape);
+        }
+        
+        // Ethereal Snow background
+        function setupBackgroundParticles() {
+            const bgPositions = new Float32Array(numBackgroundParticles * 3);
+            const bgColors = new Float32Array(numBackgroundParticles * 3);
+            const bgVelocities = new Float32Array(numBackgroundParticles); 
+            const maxRange = bgRange; 
+
+            for (let i = 0; i < numBackgroundParticles * 3; i += 3) {
+                bgPositions[i] = (Math.random() - 0.5) * maxRange;
+                bgPositions[i + 1] = (Math.random() - 0.5) * maxRange;
+                bgPositions[i + 2] = (Math.random() - 0.5) * maxRange;
+                
+                bgVelocities[i / 3] = 0.005 + Math.random() * 0.008; 
+
+                // Use a pale, cool white color for snow
+                bgColors[i] = snowColor.r * 0.9; 
+                bgColors[i + 1] = snowColor.g * 0.9;
+                bgColors[i + 2] = snowColor.b * 0.9;
+            }
+
+            const bgGeometry = new THREE.BufferGeometry();
+            bgGeometry.setAttribute('position', new THREE.BufferAttribute(bgPositions, 3));
+            bgGeometry.setAttribute('color', new THREE.BufferAttribute(bgColors, 3));
+            bgGeometry.userData.velocities = bgVelocities; 
+
+            const bgMaterial = new THREE.PointsMaterial({
+                size: 0.35, 
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                opacity: 0.7, 
+                sizeAttenuation: true
+            });
+
+            backgroundParticles = new THREE.Points(bgGeometry, bgMaterial);
+            scene.add(backgroundParticles);
+        }
+
+        // --- INTERACTION / ANIMATION ---
+
+        function setTargetShape(shapeKey) {
+            if (!shapes[shapeKey]) return;
+
+            const target = shapes[shapeKey];
+            currentShape = shapeKey; // Update state
+
+            // Set the target positions for morphing
+            for (let i = 0; i < numParticles * 3; i++) {
+                targetPositions[i] = target[i];
+            }
+            
+            // Update colors immediately upon shape change
+            updateParticleColors(shapeKey); 
+
+            // Initial blur factor is only used at startup, after that it's 0
+            initialBlurFactor = 0.0;
+        }
+
+        function setupEventListeners() {
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // Zoom Slider
+            const zoomSlider = document.getElementById('zoom-slider');
+            zoomSlider.addEventListener('input', (e) => {
+                // Map slider value to camera Z position
+                camera.position.z = 70 - parseFloat(e.target.value);
+                controls.update();
+            });
+
+            // Shape Transformation Buttons
+            document.getElementById('icon-bar-container').addEventListener('click', (e) => {
+                let targetButton = e.target.closest('.icon-button');
+                if (!targetButton) return;
+
+                // Remove active class from all
+                document.querySelectorAll('.icon-button').forEach(btn => btn.classList.remove('active'));
+                targetButton.classList.add('active');
+
+                if (targetButton.id === 'btn-tree') {
+                    setTargetShape('tree');
+                } else if (targetButton.id === 'btn-wreath') {
+                    setTargetShape('wreath');
+                } else if (targetButton.id === 'btn-gingerbread') {
+                    setTargetShape('gingerbread');
+                }
+            });
+            
+            // Initial blur transition upon load
+            setTimeout(() => {
+                setTargetShape('tree');
+            }, 500);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.1; // Increment time for twinkling
+
+            // 1. Continuous Rotation (Artistic & Romantic Vibe)
+            if (currentShape === 'wreath') {
+                // Rotate around Z axis (spinning on a wall)
+                particleSystem.rotation.z += 0.005;
+                particleSystem.rotation.y *= 0.99; 
+            } else {
+                // Default Y-axis rotation
+                particleSystem.rotation.y += 0.005;
+                particleSystem.rotation.z *= 0.99; 
+            }
+            
+            // --- TWINKLING STAR EFFECT ---
+            if (currentShape === 'tree' && starParticleIndices.length > 0) {
+                const colorAttribute = particleSystem.geometry.getAttribute('color');
+                let colorNeedsUpdate = false;
+                
+                // Calculate brightness factor based on sine wave (smooth pulse)
+                // Range from 0.7 (dim) to 1.3 (bright)
+                const brightnessFactor = 1.0 + Math.sin(time * 0.2) * 0.3; 
+                
+                // Base color components of the star
+                const baseR = baseStarColor.r;
+                const baseG = baseStarColor.g;
+                const baseB = baseStarColor.b;
+
+                for (const index of starParticleIndices) {
+                    // Apply pulsating brightness to the star particles
+                    colorAttribute.array[index] = baseR * brightnessFactor;
+                    colorAttribute.array[index + 1] = baseG * brightnessFactor;
+                    colorAttribute.array[index + 2] = baseB * brightnessFactor;
+                    colorNeedsUpdate = true;
+                }
+                
+                if (colorNeedsUpdate) {
+                    colorAttribute.needsUpdate = true;
+                }
+            }
+
+
+            // Background particle animation (Snow)
+            if (backgroundParticles) {
+                const bgPositionAttribute = backgroundParticles.geometry.getAttribute('position');
+                const bgVelocities = backgroundParticles.geometry.userData.velocities;
+                const range = bgRange; 
+
+                for (let i = 0; i < numBackgroundParticles * 3; i += 3) {
+                    const particleIndex = i / 3;
+                    // Move particle down (Y axis)
+                    bgPositionAttribute.array[i + 1] -= bgVelocities[particleIndex];
+
+                    // Wrap particle back to the top when it falls off the bottom
+                    if (bgPositionAttribute.array[i + 1] < -range / 2) {
+                        bgPositionAttribute.array[i + 1] = range / 2;
+                        // Random X/Z for subtle drift
+                        bgPositionAttribute.array[i] = (Math.random() - 0.5) * range;
+                        bgPositionAttribute.array[i + 2] = (Math.random() - 0.5) * range;
+                    }
+                }
+                bgPositionAttribute.needsUpdate = true;
+
+                // Subtle background rotation
+                backgroundParticles.rotation.y += 0.0005;
+                backgroundParticles.rotation.z += 0.0002;
+            }
+
+            // 2. Particle Morphing/Focus Transition
+            const geometry = particleSystem.geometry;
+            const positionAttribute = geometry.getAttribute('position');
+            let needsUpdate = false;
+
+            for (let i = 0; i < numParticles * 3; i++) {
+                const current = positionAttribute.array[i];
+                const target = targetPositions[i];
+
+                if (Math.abs(current - target) > 0.001) {
+                    positionAttribute.array[i] += (target - current) * lerpSpeed;
+                    needsUpdate = true;
+                }
+            }
+
+            if (needsUpdate) {
+                positionAttribute.needsUpdate = true;
+            }
+
+            // 3. Update controls and render
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function() {
+            init();
+        };
+
+    </script>
+</body>
+</html>
